@@ -169,7 +169,7 @@ void loop() {
 		*/
 		if (digitalRead(SW2) == 1 && event_flag == 1)
 		{
-    event_flag++;
+      event_flag++;
 		 Serial.println("motor stop\r\n");
 			motor_drive_stop();
 			delay(1000);
@@ -181,7 +181,7 @@ void loop() {
 		 /*
 		 * Once motor touch the switch-1 again(default position) stop the motor
 		 */
-	   if (digitalRead(SW1) == 0 && event_flag == 2)
+	   if (digitalRead(SW1) == 1 && event_flag == 3)
             {
 		time_end_flag=0;
 		Serial.println("default position");
@@ -208,6 +208,10 @@ void loop() {
 	}
   /* IoT timer and Software timer is Equal, There Is no shoot Acquired */
   if (timerRunning && Time_from_Iot == secondsCounter) {
+    Serial.print("Stop timer:");
+    Serial.println(Time_from_Iot);
+    Serial.print("Seconds:");
+    Serial.println(secondsCounter);
     stopTimer();
   }  
 
@@ -407,9 +411,7 @@ void timer_start(void)
 
   Serial.println("time Start");
 	Buzzer_function();
-  if (!timerRunning && Time_from_Iot > 0) { // start timer
     startTimer();
-  }
 	time_flag = 1; // Set Timer flag to indicate the timer on call laser detect function in superloop
 }
 
@@ -433,6 +435,9 @@ void laser_detect(void)
 	 */
 	if (digitalRead(Laser) == 1)
 	{
+    event_flag++;
+    secondsCounter =0;
+    Serial.println("Laser function");
     stopTimer();// Once laser detected stop the timer
 		time_flag = 0; // Reset timer flag for another time will execute this function
 		Serial.println("laser Function");
@@ -440,6 +445,7 @@ void laser_detect(void)
 		Training_mode_pub(1);
     Time_from_Iot =0;
 		memset(Time_Duration,0,sizeof(Time_Duration));
+    memset(mqtt_payload,0,sizeof(mqtt_payload));
 		delay(5000);
 		motor_drive_anticlockwise();
          sw1_flag=1;// Increment sw flag to turn on switch sw2
@@ -546,6 +552,8 @@ void secondCallback() {
 
 // Function to start the timer
 void startTimer() {
+  Serial.println(Time_from_Iot);
+  memset(mqtt_payload,0,sizeof(mqtt_payload));
   secondTicker.attach(1, secondCallback); // Attach the ticker to start the timer
   timerRunning = true;
   Serial.println("Timer started.");
@@ -553,7 +561,11 @@ void startTimer() {
 
 // Function to stop the timer
 void stopTimer() {
+  event_flag++;
   Time_from_Iot =0;
+  secondsCounter =0;
+  memset(Time_Duration,0,sizeof(Time_Duration));
+  memset(mqtt_payload,0,sizeof(mqtt_payload));
   secondTicker.detach(); // Detach the ticker to stop the timer
   Training_mode_pub(0);
   timerRunning = false;
