@@ -69,8 +69,8 @@ void setup() {
   Serial.begin(115200);
    pinMode(LED, OUTPUT);
     pinMode(WIFI_LED,OUTPUT);
-    pinMode(SW1,INPUT_PULLDOWN_16);
-    pinMode(SW2,INPUT_PULLDOWN_16);
+    pinMode(SW1,INPUT);
+    pinMode(SW2,INPUT);
     pinMode(Motor_Direction,OUTPUT);
     pinMode(Motor_Input,OUTPUT);
     pinMode(Buzzer,OUTPUT);
@@ -78,8 +78,7 @@ void setup() {
     pinMode(LED_BUILTIN,OUTPUT);
     digitalWrite(LED_BUILTIN,LOW);
     digitalWrite(WIFI_LED,LOW);
-   digitalWrite(LED,LOW);
-   pinMode(2,OUTPUT);  
+   digitalWrite(LED,LOW); 
 
     
   // connecting to a WiFi network
@@ -114,27 +113,27 @@ void setup() {
 }
 
 void callback(char *topic, byte *payload, unsigned int length) {
-  int i;
+  int i,j;
  Serial.print("Received [");
   Serial.print(topic);
   Serial.print("]: ");
   for (i = 0; i < length; i++)
   {
-        // mqtt_payload[i];
-         Serial.print((char)payload[i]);
+         mqtt_payload[j++]=payload[i];
+        // Serial.print((char)mqtt_payload[i]);
   }
  Serial.println();
   
 }
 void diagcallback(char *diag_topic, byte *payload, unsigned int length) {
-  int i;
+  int i,j;
  Serial.print("Received [");
   Serial.print(diag_topic);
   Serial.print("]: ");
   for (i = 0; i < length; i++)
   {
-        // mqtt_payload[i];
-         Serial.print((char)payload[i]);
+         mqtt_payload[j++]=payload[i];
+        // Serial.print((char)mqtt_payload[i]);
   }
  Serial.println();
   
@@ -143,11 +142,11 @@ void diagcallback(char *diag_topic, byte *payload, unsigned int length) {
 
 void loop() {
 
-   if (iot_flag == 0)
+  if (iot_flag == 0)
 	{
 		//  if IoT flag is clear then entering to Data_from_iot
-		if (data_from_iot())    // Data_from_IoT function return 1 then set the I0T flag
-		    iot_flag = 1;
+		data_from_iot();    // Data_from_IoT function return 1 then set the I0T flag
+
 	}
 
   if (iot_flag)
@@ -168,7 +167,7 @@ void loop() {
 		* once motor touch switch-2 then motor stop, timer starts for 10 seconds,
 		* and motor also stay in 90 degree position
 		*/
-		if (digitalRead(SW2) == 1 && event_flag == 1)
+		if (digitalRead(SW2) == 0 && event_flag == 1)
 		{
     event_flag++;
 		 Serial.println("motor stop\r\n");
@@ -182,7 +181,7 @@ void loop() {
 		 /*
 		 * Once motor touch the switch-1 again(default position) stop the motor
 		 */
-	   if (digitalRead(SW1) == 1 && event_flag == 2)
+	   if (digitalRead(SW1) == 0 && event_flag == 2)
             {
 		time_end_flag=0;
 		Serial.println("default position");
@@ -258,26 +257,24 @@ int data_from_iot(void)
 	uint8_t name_increment=0;
 	uint8_t mode_increment=0;
   uint8_t time_increment=0;
-
-    strcpy(buff1,mqtt_payload);
-
-		while (1)
+  Serial.println(mqtt_payload);
+		while (count<90)
 		{
-		      if (buff1[count] == '"')
+		      if (mqtt_payload[count] == '"')
 		      {
 			    ++quote_double;
 		      }
 
 		     if (quote_double == 3)
 		     {
-			   if (buff1[count + 1] != '"')
+			   if (mqtt_payload[count + 1] != '"')
 			   {
-				User_Name[name_increment] = buff1[count + 1];
+				User_Name[name_increment] = mqtt_payload[count + 1];
 				name_increment++;
 			   }
 			   else
 			   {
-				   if (buff1[count + 2] == '}')
+				   if (mqtt_payload[count + 2] == '}')
 					  {
 					   quote_double=0;
 					   sprintf(buff2, "Name:%s\r\n", User_Name);
@@ -289,50 +286,43 @@ int data_from_iot(void)
 
 		    if (quote_double == 7)
 		    {
-			   if (buff1[count + 1] != '"')
+			   if (mqtt_payload[count + 1] != '"')
 			   {
-				Mode_of_Rotation[mode_increment] = buff1[count + 1];
+				Mode_of_Rotation[mode_increment] = mqtt_payload[count + 1];
 				mode_increment++;
 			   }
 		   }
 
 		   if (quote_double == 11)
 		   {
-			  if (buff1[count + 1] != '"')
+			  if (mqtt_payload[count + 1] != '"')
 			  {
-				Time_Duration[time_increment] = buff1[count + 1];
+				Time_Duration[time_increment] = mqtt_payload[count + 1];
 				time_increment++;
-			  }
-			  else
-			  {
-
 			  }
 		   }
 		   if (quote_double == 14)
 		   		   {
 			         quote_double=0;
 				   	   mode=1;
-			  					  break;
+			  			break;
 		   		   }
-//		  if (quote_double == 12)
-//		  {
-//			  mode=2;
-//			break;
-//		  }
 		  ++count;
-          }
+    }
 
 	Time_from_Iot = atoi(Time_Duration);
-	sprintf(buff2,"Mode:%d\r\n",Time_from_Iot);
+	// sprintf(buff2,"Mode:%d\r\n",Time_from_Iot);
   Serial.print("Outside Task Time:");
-  Serial.println(buff2);
-  memset(buff2,0,sizeof(buff2));
+  // Serial.println(User_Name);
+  // Serial.println(Mode_of_Rotation);
+  Serial.println(Time_from_Iot);
+  // memset(buff2,0,sizeof(buff2));
 	if (mode == 1) {
 				Time_from_Iot = atoi(Time_Duration);
-				sprintf(buff2, "Time:%d\r\n", Time_from_Iot);
-				if (strcmp(Mode_of_Rotation, "Slice") == 0 && Time_from_Iot) {
+				// sprintf(buff2, "Time:%d\r\n", Time_from_Iot);
+				if (strcmp(Mode_of_Rotation, "Popup") == 0 && Time_from_Iot) {
 					memset(Mode_of_Rotation, 0, sizeof(Mode_of_Rotation));
-					sprintf(buff2, "Duration:%d\r\n", Time_from_Iot);
+					// sprintf(buff2, "Duration:%d\r\n", Time_from_Iot);
 					iot_flag = 1;
 					return 1;
 				} else {
@@ -354,7 +344,7 @@ int data_from_iot(void)
 				//call led function
 				led_diagnostic();
 				Diagnostic_mode_pub("DLT");
-
+        return 0;
 			}
 		 if(strcmp(User_Name,"LS") ==0)
 			{
@@ -448,6 +438,7 @@ void laser_detect(void)
 		Serial.println("laser Function");
 		Buzzer_function();
 		Training_mode_pub(1);
+    Time_from_Iot =0;
 		memset(Time_Duration,0,sizeof(Time_Duration));
 		delay(5000);
 		motor_drive_anticlockwise();
@@ -481,7 +472,7 @@ void motor_diagnostic(void)
 			digitalWrite(Motor_Input,LOW); //Motor OFF
 		  mode=0;
 			iot_flag = 0;
-		break;
+		  break;
 	}
 
   }
@@ -562,10 +553,10 @@ void startTimer() {
 
 // Function to stop the timer
 void stopTimer() {
-  Training_mode_pub(0);
+  Time_from_Iot =0;
   secondTicker.detach(); // Detach the ticker to stop the timer
+  Training_mode_pub(0);
   timerRunning = false;
   Serial.println("Timer stopped.");
 }
-
 
