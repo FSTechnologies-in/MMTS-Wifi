@@ -167,7 +167,7 @@ void loop() {
 		* once motor touch switch-2 then motor stop, timer starts for 10 seconds,
 		* and motor also stay in 90 degree position
 		*/
-		if (digitalRead(SW2) == 0 && event_flag == 1)
+		if (digitalRead(SW2) == 1 && event_flag == 1)
 		{
     event_flag++;
 		 Serial.println("motor stop\r\n");
